@@ -1,0 +1,172 @@
+# NOTES:
+# cannot have conflicting container names
+
+# COMMANDS:
+# docker-compose -p microservices-comp3095 -f docker-compose.yml up -d
+
+version: '3.8'
+
+services:
+
+  order-service:
+    image: order-service
+    ports:
+      - "8082:8082"
+    #    builds app
+    build:
+      context: ./order-service
+      dockerfile: ./Dockerfile
+    container_name: order-service
+    environment:
+      #      property available provided by spring
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      - postgres-order-service
+      - discovery-service
+    networks:
+      - spring
+
+
+  inventory-service:
+    image: inventory-service
+    ports:
+      - "8083:8083"
+    #    builds app
+    build:
+      context: ./inventory-service
+      dockerfile: ./Dockerfile
+    container_name: inventory-service
+    environment:
+      #      property available provided by spring
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      - postgres-inventory-service
+      - discovery-service
+    networks:
+      - spring
+
+  #  just a label
+  product-service:
+    image: product-service
+    ports:
+      - "8084:8084"
+    #    builds app
+    build:
+      context: ./product-service
+      dockerfile: ./Dockerfile
+    container_name: product-service
+    environment:
+      #      property available provided by spring
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      - mongodb-product-service
+      - discovery-service
+    networks:
+      - spring
+
+  discovery-service:
+    image: discovery-service
+    ports:
+      - "8761:8761"
+    build:
+      context: ./discovery-service
+      dockerfile: ./Dockerfile
+    container_name: discovery-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    networks:
+      - spring
+
+  api-gateway:
+    image: api-gateway
+    ports:
+      - "8181:8181"
+    build:
+      context: ./api-gateway
+      dockerfile: ./Dockerfile
+    container_name: api-gateway
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      - discovery-service
+    networks:
+      - spring
+
+  mongodb-product-service:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=rootadmin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    volumes:
+      - ./data/mongo/products:/data/db
+      - ./init/mongo/docker-entrypoint-initdb.d/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    container_name: mongodb-product-service
+    restart: unless-stopped
+    command: mongod --auth
+    networks:
+      - spring
+
+  mongo-express:
+    image: mongo-express
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=rootadmin
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=password
+      - ME_CONFIG_MONGODB_SERVER=mongodb
+    container_name: mongo-express
+    restart: unless-stopped
+    depends_on:
+      - mongodb-product-service
+    networks:
+      - spring
+
+  postgres-order-service:
+    image: postgres:latest
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=order-service
+    volumes:
+      - ./data/postgres/order-service:/var/lib/postgres
+      - ./init/postgres/order-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+    container_name: postgres-order-service
+    networks:
+      - spring
+
+  postgres-inventory-service:
+    image: postgres:latest
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=inventory-service
+    volumes:
+      - ./data/postgres/order-service:/var/lib/postgres
+      - ./init/postgres/inventory-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+    container_name: postgres-inventory-service
+    networks:
+      - spring
+
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=user@domain.ca
+      - PGADMIN_DEFAULT_PASSWORD=password
+    container_name: pgadmin
+    networks:
+      - spring
+
+networks:
+  spring:
+    driver: bridge
