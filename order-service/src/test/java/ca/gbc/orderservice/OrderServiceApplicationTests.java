@@ -8,10 +8,14 @@ import ca.gbc.orderservice.repository.OrderRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
@@ -21,9 +25,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+
 @SpringBootTest
 @AutoConfigureMockMvc
-class OrderServiceApplicationTests  extends AbstractContainerBaseTest{
+class OrderServiceApplicationTests extends AbstractContainerBaseTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -33,11 +38,9 @@ class OrderServiceApplicationTests  extends AbstractContainerBaseTest{
 
     @Autowired
     private OrderRepository orderRepository;
-
-    private final String TEST_SKU_CODE ="testSkuCode";
-
+    private final String TEST_SKU_CODE = "testSkuCode";
     private static MockWebServer mockWebServer;
-//Build mock data tables for mock to build a mock db
+
     private OrderLineItemDto getOrderLineItemDto(String sku) {
         return OrderLineItemDto.builder()
                 .id(new Random().nextLong())
@@ -47,7 +50,7 @@ class OrderServiceApplicationTests  extends AbstractContainerBaseTest{
                 .build();
     }
 
-    private OrderRequest getOrderRequest(String sku){
+    private OrderRequest getOrderRequest(String sku) {
         List<OrderLineItemDto> orderLineItemDtoList = new ArrayList<>();
         orderLineItemDtoList.add(getOrderLineItemDto(sku));
         OrderRequest request = new OrderRequest();
@@ -69,18 +72,18 @@ class OrderServiceApplicationTests  extends AbstractContainerBaseTest{
 
     @Test
     void placeOrder() throws Exception {
-
         InventoryResponse inventoryResponse = new InventoryResponse(TEST_SKU_CODE, true);
 
-        mockWebServer.enqueue(new MockResponse().setBody(objectMapper.writeValueAsString(List.of(inventoryResponse))).addHeader("Content-Type", "application/json"));
+        mockWebServer.enqueue(new MockResponse()
+                .setBody(objectMapper.writeValueAsString(List.of(inventoryResponse)))
+                .addHeader("Content-Type", "application/json"));
 
         OrderRequest orderRequest = getOrderRequest(TEST_SKU_CODE);
-        //After Order Request next is for JSON String --- for the mock call
         String orderRequestString = objectMapper.writeValueAsString(orderRequest);
-        //Make Call to placeholder for api call
+
         mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
                         .content(orderRequestString)
-                        .contentType("application/json"))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isCreated());
 
         List<Order> orders = orderRepository.findAll();
@@ -88,5 +91,4 @@ class OrderServiceApplicationTests  extends AbstractContainerBaseTest{
         String returnedSkuCode = orders.get(0).getOrderLineItemList().get(0).getSkuCode();
         Assertions.assertEquals(TEST_SKU_CODE, returnedSkuCode);
     }
-
 }

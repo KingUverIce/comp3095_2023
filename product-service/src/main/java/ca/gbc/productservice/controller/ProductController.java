@@ -30,7 +30,7 @@ public class ProductController {
         return productService.getAllProducts();
     }
 
-    // http://localhost:8080/api/product/1
+    // http://localhost:8084/api/product/1
     @PutMapping({"/{productId}"})
     public ResponseEntity<?> updateProduct(@PathVariable("productId") String productId,
                                            @RequestBody ProductRequest productRequest) {
@@ -44,7 +44,7 @@ public class ProductController {
 
     }
 
-    // http://localhost:8080/api/product/5f9b1b3b1d9b7c1b4c3b3b1a
+    // http://localhost:8084/api/product/5f9b1b3b1d9b7c1b4c3b3b1a
     @DeleteMapping("/{productId}")
     public ResponseEntity<?> deleteProduct(@PathVariable("productId") String productId) {
         productService.deleteProduct(productId);

@@ -30,7 +30,7 @@ public class OrderServiceImpl implements OrderService {
     private String inventoryApiUri;
 
     @Override
-    public void placeOrder(OrderRequest orderRequest) {
+    public String placeOrder(OrderRequest orderRequest) {
         Order order = new Order();
         order.setOrderNumber(UUID.randomUUID().toString());
 
@@ -68,10 +68,9 @@ public class OrderServiceImpl implements OrderService {
                 .allMatch(InventoryResponse::isSufficientStock);
 
         if (Boolean.TRUE.equals(allProductInStock)) {
-            orderRepository.save(order);
-        } else {
-            throw new RuntimeException("Not all products are in stock, order cannot be placed");
+            return orderRepository.save(order).getOrderNumber();
         }
+        throw new RuntimeException("Not all products are in stock, order cannot be placed");
     }
 
     private OrderLineItem mapToDto(OrderLineItemDto orderLineItemDto) {
